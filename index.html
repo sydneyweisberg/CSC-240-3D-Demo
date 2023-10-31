@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+
+<head>
+  <title>Pyramid</title>
+  <script src="three.min.js"></script>
+  <script src="KeyboardState.js"></script>
+
+
+  <!-- Modified from the MeshFaceMaterial.html example in our textbook 
+    (Introduction to Computer Graphics) by David J. Eck -->
+
+  <script>
+    /*
+     * Name:  Sydney Weisberg
+     * Partner name (if pair programming): n/a
+     * Reflections on this assignment: For this assignment, I chose to do the "User Control" and "Something Besides Pyramids" extensions. For user control, you can use the arrow keys and WASD to move around the scene. The arrow keys act as basic forward, backwards, left, and right movement. W moves the camera up, S moves the camera down, A rotates the camera counterclockwise, and D rotates the camera clockwise. I set limits to how far you can move in each direction so that you don't exit the boundaries of the mountains, plane, and trees. Instead of pyramids in my scene, I added a cylinder object to act as a trunk for pyramid shaped trees. Additionally, I attempted to use a set of heirarchical transformations to rotate the directional light around the scene to make it look like the scene is shifting from day to night. I adjust the background color with each render loop to enhance this effect.
+     * 
+     */
+
+    var scene, camera, renderer; // Three.js rendering basics.
+
+    var canvas; // The canvas on which the image is rendered.
+    var keyboard = new KeyboardState();
+
+    // Creates a list of colors for the tree
+    var treeColors = ["darkgreen", "forestgreen", "green", "#d95232", "#f29541"];
+
+    // Calculates step for sky color change
+    var lightRGB = [148, 177, 254];
+    var darkRGB = [0, 28, 102];
+    var stepNum = 300;
+    var currSteps = 300;
+    var step = [(darkRGB[0] - lightRGB[0]) / stepNum, (darkRGB[1] - lightRGB[1]) / stepNum, (darkRGB[2] - lightRGB[2]) / stepNum];
+    var reverse = 1;
+
+    // Creates point in center canvas to heirarchically rotate
+    var lightPoint = new THREE.Object3D();
+
+    // Create the scene. This function is called once, as soon as the page loads.
+    // The renderer has already been created before this function is called.
+    function createWorld() {
+
+      scene = new THREE.Scene();
+
+      camera = new THREE.PerspectiveCamera(20, 2, 1, 170);
+      camera.position.y = 3;
+      camera.position.z = 100;
+
+      scene.add(new THREE.DirectionalLight(0xffffff, 0.4));
+
+      scene.add(lightPoint);
+      var viewpointLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      viewpointLight.position.set(0, 50, 20);
+      // Heirarchically adds light
+      lightPoint.add(viewpointLight);
+
+      // Creates plane
+      var geometry = new THREE.PlaneGeometry(300, 300);
+      var material = new THREE.MeshBasicMaterial({color: "darkgreen", side: THREE.DoubleSide});
+      var plane = new THREE.Mesh(geometry, material);
+      plane.rotation.x = Math.PI / 2;
+      scene.add(plane);
+
+      // Makes the north background mountains
+      var xpos = -100;
+      var zval = -30;
+      for (var i = 0; i < 40; i++) {
+        var s = Math.ceil(Math.random() * 10) + 10;
+        var h = Math.ceil(Math.random() * 10) + 10;
+        makePyramid(xpos, 0, zval, s, h, "grey");
+        xpos += s - 5;
+        if (i == 20) {
+          xpos = -105;
+          zval = -45
+        }
+      }
+      // Makes the south background mountains
+      xpos = -100;
+      zval = 130;
+      for (var i = 0; i < 40; i++) {
+        var s = Math.ceil(Math.random() * 10) + 10;
+        var h = Math.ceil(Math.random() * 10) + 10;
+        makePyramid(xpos, 0, zval, s, h, "grey");
+        xpos += s - 5;
+        if (i == 20) {
+          xpos = -105;
+          zval = 135
+        }
+      }
+      // Makes the west background mountains
+      zval = -30;
+      xpos = -80;
+      for (var i = 0; i < 30; i++) {
+        var s = Math.ceil(Math.random() * 10) + 10;
+        var h = Math.ceil(Math.random() * 10) + 10;
+        makePyramid(xpos, 0, zval, s, h, "grey");
+        zval += s - 5;
+        if (i == 15) {
+          xpos = -85;
+          zval = -30
+        }
+      }
+      // Makes the east background mountains
+      zval = -30;
+      xpos = 80;
+      for (var i = 0; i < 30; i++) {
+        var s = Math.ceil(Math.random() * 10) + 10;
+        var h = Math.ceil(Math.random() * 10) + 10;
+        makePyramid(xpos, 0, zval, s, h, "grey");
+        zval += s - 5;
+        if (i == 15) {
+          xpos = 85;
+          zval = -30
+        }
+      }
+
+      // Makes the random trees
+      for (var i = 0; i < 35; i++) {
+        var color = treeColors[i % treeColors.length];
+        var s = Math.ceil(Math.random() * 5) + 5;
+        var h = Math.ceil(Math.random() * 5) + 5;
+        var x = Math.ceil(Math.random() * 100) - 55;
+        var z = Math.ceil(Math.random() * 80) - 10;
+        makePyramid(x, 5, z, s, h, color); // leaves
+        makeCylinder(x, 0, z, 0.8, 10, "saddlebrown"); // trunk
+      }
+    }
+
+    function makePyramid(cx, cy, cz, side, height, color) {
+      var pyramidGeom = new THREE.Geometry();
+
+      pyramidGeom.vertices = [
+        new THREE.Vector3(cx + side / 2, cy, cz + side / 2),
+        new THREE.Vector3(cx + side / 2, cy, cz - side / 2),
+        new THREE.Vector3(cx - side / 2, cy, cz - side / 2),
+        new THREE.Vector3(cx - side / 2, cy, cz + side / 2),
+        new THREE.Vector3(cx, cy + height, cz)];
+
+      pyramidGeom.faces = [
+        new THREE.Face3(0, 3, 1), //bottom
+        new THREE.Face3(2, 1, 3), //bottom
+        new THREE.Face3(4, 3, 0), //front
+        new THREE.Face3(2, 3, 4), //left side
+        new THREE.Face3(1, 2, 4), //back
+        new THREE.Face3(0, 1, 4)]; //right side
+
+      pyramidGeom.computeFaceNormals();
+
+      pyramidGeom.faces[0].materialIndex = 0;
+      for (var i = 1; i <= 5; i++) {
+        pyramidGeom.faces[i].materialIndex = i - 1;
+      }
+
+      var pyramidFaceMaterial = [
+        new THREE.MeshLambertMaterial({color: color, flatShading: true}),
+        new THREE.MeshLambertMaterial({color: color, flatShading: true}),
+        new THREE.MeshLambertMaterial({color: color, flatShading: true}),
+        new THREE.MeshLambertMaterial({color: color, flatShading: true}),
+        new THREE.MeshLambertMaterial({color: color, flatShading: true})
+      ];
+
+      var pyramid = new THREE.Mesh(pyramidGeom, pyramidFaceMaterial);
+
+      scene.add(pyramid);
+    }
+
+    function makeCylinder(cx, cy, cz, radius, height, color) {
+      var cylinder = new THREE.CylinderGeometry(radius, radius, height);
+      var cylinderMaterial = new THREE.MeshLambertMaterial({color: color, flatShading: true});
+      var cylinderMesh = new THREE.Mesh(cylinder, cylinderMaterial);
+      scene.add(cylinderMesh);
+      cylinderMesh.position.set(cx, cy, cz);
+    }
+
+    function update() {
+      keyboard.update();
+
+      if (keyboard.pressed("left")) {
+        if (camera.position.x >= -40) {
+          camera.position.x -= 0.2;
+        }
+      }
+      if (keyboard.pressed("right")) {
+        if (camera.position.x <= 40) {
+          camera.position.x += 0.2;
+        }
+      }
+      if (keyboard.pressed("down")) {
+        if (camera.position.z <= 110) {
+          camera.position.z += 0.2;
+        }
+      }
+      if (keyboard.pressed("up")) {
+        if (camera.position.z >= 0) {
+          camera.position.z -= 0.2;
+        }
+      }
+      if (keyboard.pressed("w")) {
+        if (camera.position.y <= 10) {
+          camera.position.y += 0.2;
+        }
+      }
+      if (keyboard.pressed("a")) {
+        camera.rotation.y += 0.005;
+      }
+      if (keyboard.pressed("s")) {
+        if (camera.position.y >= 2) {
+          camera.position.y -= 0.2;
+        }
+      }
+      if (keyboard.pressed("d")) {
+        camera.rotation.y -= 0.005;
+      }
+      //changes sky color
+      renderer.setClearColor(`rgba(${Math.ceil(lightRGB[0])}, ${Math.floor(lightRGB[1])}, ${Math.floor(lightRGB[2])}, ${1})`);
+      
+      if (currSteps > stepNum || currSteps < 0) {
+        reverse = reverse * -1;
+      }
+      lightRGB[0] -= reverse * step[0];
+      lightRGB[1] -= reverse * step[1];
+      lightRGB[2] -= reverse * step[2];
+      currSteps += 1 * reverse;
+
+      //rotates light
+      lightPoint.rotation.z += 0.01;
+    }
+
+    function render() {
+      update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(render);
+    }
+
+    //----------------------------------------------------------------------------------
+
+    // The init() function is called by the onload event when the document has loaded.
+    function init() {
+      try {
+        canvas = document.getElementById("glcanvas");
+        renderer = new THREE.WebGLRenderer({canvas: canvas, antialias: true});
+      }
+      catch (e) {
+        document.getElementById("canvas-holder").innerHTML = "<h3><b>WebGL is not available.</b><h3>";
+        return;
+      }
+
+      // create world and render scene
+      createWorld();
+      render();
+    }
+
+  </script>
+
+</head>
+
+<body onload="init()">
+  <div id="canvas-holder">
+    <canvas id="glcanvas" width="600" height="300"></canvas>
+  </div>
+</body>
+
+</html>
