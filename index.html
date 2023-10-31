@@ -10,16 +10,10 @@
     (Introduction to Computer Graphics) by David J. Eck -->
 
   <script>
-    /*
-     * Name:  Sydney Weisberg
-     * Partner name (if pair programming): n/a
-     * Reflections on this assignment: For this assignment, I chose to do the "User Control" and "Something Besides Pyramids" extensions. For user control, you can use the arrow keys and WASD to move around the scene. The arrow keys act as basic forward, backwards, left, and right movement. W moves the camera up, S moves the camera down, A rotates the camera counterclockwise, and D rotates the camera clockwise. I set limits to how far you can move in each direction so that you don't exit the boundaries of the mountains, plane, and trees. Instead of pyramids in my scene, I added a cylinder object to act as a trunk for pyramid shaped trees. Additionally, I attempted to use a set of heirarchical transformations to rotate the directional light around the scene to make it look like the scene is shifting from day to night. I adjust the background color with each render loop to enhance this effect.
-     * 
-     */
 
-    var scene, camera, renderer; // Three.js rendering basics.
+    var scene, camera, renderer;
 
-    var canvas; // The canvas on which the image is rendered.
+    var canvas;
     var keyboard = new KeyboardState();
 
     // Creates a list of colors for the tree
@@ -33,11 +27,8 @@
     var step = [(darkRGB[0] - lightRGB[0]) / stepNum, (darkRGB[1] - lightRGB[1]) / stepNum, (darkRGB[2] - lightRGB[2]) / stepNum];
     var reverse = 1;
 
-    // Creates point in center canvas to heirarchically rotate
     var lightPoint = new THREE.Object3D();
 
-    // Create the scene. This function is called once, as soon as the page loads.
-    // The renderer has already been created before this function is called.
     function createWorld() {
 
       scene = new THREE.Scene();
@@ -234,7 +225,6 @@
 
     //----------------------------------------------------------------------------------
 
-    // The init() function is called by the onload event when the document has loaded.
     function init() {
       try {
         canvas = document.getElementById("glcanvas");
